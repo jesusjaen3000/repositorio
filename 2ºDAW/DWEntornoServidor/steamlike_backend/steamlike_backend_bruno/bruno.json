@@ -1,9 +1,0 @@
-{
-  "version": "1",
-  "name": "steamlike_backend_bruno",
-  "type": "collection",
-  "ignore": [
-    "node_modules",
-    ".git"
-  ]
-}
