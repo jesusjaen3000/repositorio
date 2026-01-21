@@ -1,0 +1,24 @@
+{% extends 'festival/base.html' %}
+{% block content %}
+
+<h2>{{ artist.name }}</h2>
+
+<p><strong>País:</strong> {{ artist.country }}</p>
+<p><strong>Biografía:</strong> {{ artist.short_bio }}</p>
+<p><strong>Website:</strong> <a href="{{ artist.website }}" target="_blank">{{ artist.website }}</a></p>
+
+<h3>Instalaciones:</h3>
+<ul>
+  {% for inst in installations %}
+    <li>{{ inst.title }} — {{ inst.edition.year }}</li>
+  {% empty %}
+    <li>No tiene instalaciones registradas.</li>
+  {% endfor %}
+</ul>
+
+<p>
+  <a href="{% url 'festival:artist_edit' artist.pk %}">Editar</a> |
+  <a href="{% url 'festival:artist_delete' artist.pk %}">Borrar</a>
+</p>
+
+{% endblock %}

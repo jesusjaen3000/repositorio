@@ -1,0 +1,50 @@
+{% extends 'florafestival/index.html' %}
+
+{% block title %}Listado de Localizaciones{% endblock %}
+
+{% block content %}
+    <h2>Listado de Localizaciones (Sedes)</h2>
+
+    <p>
+        {# Enlace para crear una nueva sede #}
+        <a href="{% url 'florafestival:venue_create' %}" style="background-color: #28a745; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px;">+ Crear Nueva Localización</a>
+    </p>
+    
+    <hr>
+
+    {% if venues %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Capacidad Máxima</th>
+                    <th>Obras Expuestas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {# Itera sobre la lista de objetos Venue #}
+                {% for venue in venues %}
+                <tr>
+                    <td>{{ venue.name }}</td>
+                    <td>{{ venue.address }}</td>
+                    <td>{{ venue.max_capacity }} personas</td>
+                    {# Usamos el related_name 'installations' para contar las obras (es necesario que este campo esté disponible en el queryset de la vista) #}
+                    <td>{{ venue.installations.count }}</td> 
+                    <td>
+                        <a href="{% url 'florafestival:venue_detail' pk=venue.pk %}">Detalle</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay localizaciones registradas actualmente.</p>
+    {% endif %}
+
+    <p style="margin-top: 20px;">
+        <a href="{% url 'florafestival:index' %}">← Volver al Inicio</a>
+    </p>
+
+{% endblock %}

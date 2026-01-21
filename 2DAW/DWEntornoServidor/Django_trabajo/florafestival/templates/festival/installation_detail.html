@@ -1,0 +1,13 @@
+{% extends 'festival/base.html' %}
+{% block content %}
+
+<h2>{{ installation.title }}</h2>
+
+<p><strong>Fecha de inauguración:</strong> {{ installation.opening_date }}</p>
+<p><strong>Artista:</strong> {{ installation.artist.name }}</p>
+<p><strong>Edición:</strong> {{ installation.edition.year }}</p>
+<p><strong>Venue:</strong> {{ installation.venue }}</p>
+<p><strong>Materiales:</strong> {{ installation.materials }}</p>
+<p><strong>Descripción:</strong> {{ installation.short_description }}</p>
+
+{% endblock %}

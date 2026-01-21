@@ -1,0 +1,26 @@
+{% extends 'festival/base.html' %}
+{% block content %}
+
+<h2>Listado de artistas</h2>
+
+<form method="get">
+  <label>Filtrar por país:</label>
+  <input type="text" name="country" value="{{ country }}">
+  <button type="submit">Filtrar</button>
+</form>
+
+<ul>
+  {% for artist in artists %}
+    <li>
+      <a href="{% url 'festival:artist_detail' artist.pk %}">
+        {{ artist.name }} ({{ artist.country }})
+      </a>
+    </li>
+  {% empty %}
+    <li>No hay artistas.</li>
+  {% endfor %}
+</ul>
+
+<p><a href="{% url 'festival:artist_create' %}">Crear nuevo artista</a></p>
+
+{% endblock %}

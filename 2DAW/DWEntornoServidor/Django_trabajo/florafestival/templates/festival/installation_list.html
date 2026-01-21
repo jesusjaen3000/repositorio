@@ -1,0 +1,39 @@
+{% extends 'festival/base.html' %}
+{% block content %}
+
+<h2>Instalaciones</h2>
+
+<form method="get">
+  <label>Filtrar por edición:</label>
+  <select name="edition">
+    <option value="">Todas</option>
+    {% for e in editions %}
+      <option value="{{ e.year }}" {% if selected_edition == e.year|stringformat:"s" %}selected{% endif %}>
+        {{ e.year }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <label>Orden:</label>
+  <select name="order">
+    <option value="asc">Ascendente</option>
+    <option value="desc" {% if order == 'desc' %}selected{% endif %}>Descendente</option>
+  </select>
+
+  <button type="submit">Aplicar</button>
+</form>
+
+<ul>
+  {% for inst in installations %}
+    <li>
+      <a href="{% url 'festival:installation_detail' inst.pk %}">{{ inst.title }}</a>
+      — {{ inst.opening_date }} — {{ inst.artist.name }}
+    </li>
+  {% empty %}
+    <li>No hay instalaciones.</li>
+  {% endfor %}
+</ul>
+
+<p><a href="{% url 'festival:installation_create' %}">Crear nueva instalación</a></p>
+
+{% endblock %}

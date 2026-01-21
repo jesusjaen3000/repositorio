@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestor FLORA Córdoba{% endblock %}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        header { background: #e9ecef; padding: 15px; margin-bottom: 25px; border-radius: 5px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+        .container { max-width: 1000px; margin: auto; }
+        .message.success { background-color: #d4edda; color: #155724; padding: 10px; border: 1px solid #c3e6cb; margin-bottom: 15px; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Gestor del Festival FLORA Córdoba</h1>
+            <nav>
+                <a href="{% url 'florafestival:index' %}">Inicio</a> |
+                <a href="{% url 'florafestival:artist_list' %}">Artistas</a> |
+                <a href="{% url 'florafestival:installation_list' %}">Instalaciones</a> |
+                <a href="{% url 'florafestival:venue_list' %}">Localizaciones</a> |
+                <a href="{% url 'florafestival:edition_list' %}">Ediciones</a>
+            </nav>
+        </header>
+        
+        <main>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <footer>
+            <hr>
+            <p style="text-align: center; font-size: 0.8em;">&copy; 2025 FLORA Gestor.</p>
+        </footer>
+    </div>
+</body>
+</html>

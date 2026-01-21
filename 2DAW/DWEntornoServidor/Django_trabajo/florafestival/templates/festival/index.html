@@ -1,0 +1,13 @@
+{% extends 'festival/base.html' %}
+
+{% block content %}
+<h2>Bienvenido al Gestor del Festival FLORA Córdoba</h2>
+<p>Accede a las secciones:</p>
+
+<ul>
+  <li><a href="{% url 'festival:artist_list' %}">Listado de Artistas</a></li>
+  <li><a href="{% url 'festival:installation_list' %}">Listado de Instalaciones</a></li>
+  <li><a href="{% url 'festival:venue_list' %}">Localizaciones</a></li>
+  <li><a href="{% url 'festival:edition_list' %}">Ediciones</a></li>
+</ul>
+{% endblock %}

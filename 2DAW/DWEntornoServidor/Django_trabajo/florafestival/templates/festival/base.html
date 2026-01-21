@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Gestor del Festival FLORA Córdoba</title>
+</head>
+<body>
+  <header>
+    <h1><a href="{% url 'festival:index' %}">Gestor del Festival FLORA Córdoba</a></h1>
+    <nav>
+      <a href="{% url 'festival:artist_list' %}">Artistas</a> |
+      <a href="{% url 'festival:installation_list' %}">Instalaciones</a> |
+      <a href="{% url 'festival:venue_list' %}">Localizaciones</a> |
+      <a href="{% url 'festival:edition_list' %}">Ediciones</a>
+    </nav>
+    <hr>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <hr>
+    <small>Gestor FLORA — ejemplo educativo</small>
+  </footer>
+</body>
+</html>

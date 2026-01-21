@@ -1,0 +1,16 @@
+{% extends 'festival/base.html' %}
+{% block content %}
+
+<h2>Ediciones</h2>
+
+<ul>
+  {% for e in editions %}
+    <li><a href="{% url 'festival:edition_detail' e.pk %}">{{ e.year }} — {{ e.theme }}</a></li>
+  {% empty %}
+    <li>No hay ediciones registradas.</li>
+  {% endfor %}
+</ul>
+
+<p><a href="{% url 'festival:edition_create' %}">Crear edición</a></p>
+
+{% endblock %}

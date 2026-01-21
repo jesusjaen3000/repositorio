@@ -1,0 +1,25 @@
+meta {
+  name: añadir_library_entry
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8000/api/library/entries/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "external_game_id": "1007B",
+    "status": "playing",
+    "hours_played": 7
+  
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

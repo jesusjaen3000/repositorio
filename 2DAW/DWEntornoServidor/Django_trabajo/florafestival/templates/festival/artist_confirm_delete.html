@@ -1,0 +1,12 @@
+{% extends 'festival/base.html' %}
+{% block content %}
+
+<h2>¿Borrar artista {{ artist.name }}?</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Sí, borrar</button>
+  <a href="{% url 'festival:artist_detail' artist.pk %}">Cancelar</a>
+</form>
+
+{% endblock %}

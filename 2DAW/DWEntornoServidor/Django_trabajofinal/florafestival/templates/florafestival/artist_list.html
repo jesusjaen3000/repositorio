@@ -1,0 +1,58 @@
+{% extends 'florafestival/index.html' %}
+
+{% block title %}Listado de Artistas{% endblock %}
+
+{% block content %}
+    <h2>Listado de Artistas</h2>
+
+    <p>
+        <a href="{% url 'florafestival:artist_create' %}" style="background-color: #28a745; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px;">+ Crear Nuevo Artista</a>
+    </p>
+    
+    <hr>
+    
+    <h3>Filtrar por País</h3>
+    <form method="get" action="{% url 'florafestival:artist_list' %}" style="margin-bottom: 20px;">
+        <label for="country">Seleccionar País:</label>
+        <select name="country" id="country">
+            <option value="">-- Todos los Países --</option>
+            {% for country in countries %}
+                <option value="{{ country }}" {% if country == selected_country %}selected{% endif %}>{{ country }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filtrar</button>
+        {% if selected_country %}
+            <a href="{% url 'florafestival:artist_list' %}">Limpiar Filtro</a>
+        {% endif %}
+    </form>
+
+    {% if artists %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>País</th>
+                    <th>Obras</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for artist in artists %}
+                <tr>
+                    <td>{{ artist.name }}</td>
+                    <td>{{ artist.country }}</td>
+                    <td>{{ artist.installations.count }}</td>
+                    <td>
+                        <a href="{% url 'florafestival:artist_detail' pk=artist.pk %}">Detalle</a> |
+                        <a href="{% url 'florafestival:artist_edit' pk=artist.pk %}">Editar</a> |
+                        <a href="{% url 'florafestival:artist_delete' pk=artist.pk %}" style="color: red;">Borrar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No se encontraron artistas {% if selected_country %}en {{ selected_country }}{% endif %}.</p>
+    {% endif %}
+
+{% endblock %}

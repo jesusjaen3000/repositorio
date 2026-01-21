@@ -1,0 +1,74 @@
+{% extends 'florafestival/index.html' %}
+
+{% block title %}Listado de Instalaciones{% endblock %}
+
+{% block content %}
+    <h2>Listado de Instalaciones</h2>
+
+    <p>
+        <a href="{% url 'florafestival:installation_create' %}" style="background-color: #28a745; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px;">+ Crear Nueva Instalación</a>
+    </p>
+    
+    <hr>
+    
+    <h3>Filtrar y Ordenar</h3>
+    <form method="get" action="{% url 'florafestival:installation_list' %}" style="margin-bottom: 20px; display: flex; gap: 20px;">
+        
+        <div>
+            <label for="edition">Filtrar por Edición:</label>
+            <select name="edition" id="edition">
+                <option value="">-- Todas las Ediciones --</option>
+                {% for edition in editions %}
+                    <option value="{{ edition.pk }}" {% if edition.pk|stringformat:"i" == selected_edition %}selected{% endif %}>
+                        {{ edition.year }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="order_by">Ordenar por Fecha:</label>
+            <select name="order_by" id="order_by">
+                <option value="-opening_date" {% if order_by == '-opening_date' %}selected{% endif %}>Fecha (Más Reciente)</option>
+                <option value="opening_date" {% if order_by == 'opening_date' %}selected{% endif %}>Fecha (Más Antigua)</option>
+            </select>
+        </div>
+        
+        <button type="submit" style="align-self: flex-end;">Aplicar</button>
+        {% if selected_edition or order_by != '-opening_date' %}
+            <a href="{% url 'florafestival:installation_list' %}" style="align-self: flex-end;">Limpiar Filtros</a>
+        {% endif %}
+    </form>
+
+    {% if installations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Artista</th>
+                    <th>Localización</th>
+                    <th>Edición</th>
+                    <th>Inauguración</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for installation in installations %}
+                <tr>
+                    <td><a href="{% url 'florafestival:installation_detail' pk=installation.pk %}">{{ installation.title }}</a></td>
+                    <td><a href="{% url 'florafestival:artist_detail' pk=installation.artist.pk %}">{{ installation.artist.name }}</a></td>
+                    <td>{{ installation.venue.name|default:"(Sin sede)" }}</td>
+                    <td>{{ installation.edition.year }}</td>
+                    <td>{{ installation.opening_date|date:"d M, Y" }}</td>
+                    <td>
+                        <a href="{% url 'florafestival:installation_detail' pk=installation.pk %}">Detalle</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No se encontraron instalaciones bajo los criterios seleccionados.</p>
+    {% endif %}
+
+{% endblock %}
