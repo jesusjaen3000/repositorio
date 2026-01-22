@@ -20,12 +20,12 @@ class LibraryEntry(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, # Importante
         on_delete=models.CASCADE,
-        null=True,        # para no romper datos existentes.
+        null=True,        # para no romper datos existentes
         blank=True,
         related_name="library_entries",
     )
 
-    # --- Simple methods for easy unit tests (not used by the exercises).. ---
+    # --- Simple methods for easy unit tests (not used by the exercises) ---
 
     def external_id_length(self) -> int:
         return len(self.external_game_id or "")
