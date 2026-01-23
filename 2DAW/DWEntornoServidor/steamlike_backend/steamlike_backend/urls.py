@@ -3,7 +3,6 @@ from django.urls import path, include
 from library.views import health, add_library_entry, library_entry_detail
 from users.views import register
 
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health),

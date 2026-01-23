@@ -1,6 +1,7 @@
-*
-!.gitignore
-!2DAW/
-2DAW/*
-!2DAW/DWEntornoServidor/
-!2DAW/DWEntornoServidor/**
+/*
+!/.gitignore
+!/2DAW/
+/2DAW/*
+!/2DAW/DWEntornoServidor/
+/2DAW/DWEntornoServidor/**
+
