@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path, include
 from library.views import health, add_library_entry, library_entry_detail
 
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health),

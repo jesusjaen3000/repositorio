@@ -5,6 +5,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError
 from library.models import LibraryEntry
 
+# --- NUEVOS IMPORTS PARA EL EJERCICIO 2 ---
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.contrib.auth.models import User
+# ------------------------------------------
+
 def get_json_request(request):
     """
     Devuelve el cuerpo JSON del request como dict.
@@ -22,9 +28,43 @@ def get_json_request(request):
 def health(request):
     return JsonResponse({"status": "ok"})
 
+# --- NUEVA VISTA: EJERCICIO 2 (AÑADIDA) ---
+@method_decorator(csrf_exempt, name='dispatch')
+class RegisterView(View):
+    def post(self, request):
+        data = get_json_request(request)
+        username = data.get('username')
+        password = data.get('password')
 
-# Vista para añadir una entrada a la biblioteca
-# Vista para añadir una entrada a la biblioteca
+        # Validación de campos obligatorios y tipos
+        if not username or not password or not isinstance(username, str) or not isinstance(password, str):
+            return JsonResponse({
+                "error": "validation_error",
+                "message": "Faltan campos obligatorios o el formato es incorrecto"
+            }, status=400)
+
+        # Validación longitud contraseña (mínimo 8)
+        if len(password) < 8:
+            return JsonResponse({
+                "error": "validation_error",
+                "message": "La contraseña debe tener al menos 8 caracteres"
+            }, status=400)
+
+        try:
+            # Crear usuario (encripta la clave automáticamente)
+            user = User.objects.create_user(username=username, password=password)
+            return JsonResponse({
+                "id": user.id,
+                "username": user.username
+            }, status=201)
+        except IntegrityError:
+            return JsonResponse({
+                "error": "validation_error",
+                "message": "El nombre de usuario ya está en uso"
+            }, status=400)
+
+# --- TUS VISTAS ANTERIORES (SIN TOCAR NADA) ---
+
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
 def add_library_entry(request):
@@ -33,25 +73,17 @@ def add_library_entry(request):
         external_game_id = data.get("external_game_id")
         status = data.get("status")
         hours_played = data.get("hours_played", 0)
-        errores_dict = {} # Diccionario para almacenar errores de validación
+        errores_dict = {} 
 
-        #   Validación de datos
-        errores = False  #Ausencia de errores
+        errores = False  
         if hours_played < 0:
-            errores = True #Hayunerror
+            errores = True 
             errores_dict.update({"hours_played": "Las horas deben ser positivas"})
 
         if status not in ["wishlist", "playing", "completed", "dropped"]:
             errores = True
             errores_dict.update({"status": "Estado no permitido. Los valores permitidos son: wishlist, playing, completed, dropped"})
     
-        #Los try except ayudan a capturar las excepciones, las excepciones son errores que pueden ocurrir en django
-        #En este caso es una excepción de integridad (IntegrityError), esta sucede cuando se intenta duplicar un valor único en la base de datos
-        #El external_game_id es único, por lo que si se intenta agregar un juego con un external_game_id que ya existe, se lanzará una excepción de integridad
-        #El bloque try intenta crear la entrada en la base de datos, si tiene éxito, devuelve una respuesta JSON con los detalles de la entrada creada y un código de estado 201 (creado)
-        #Si ocurre una excepción de integridad, se captura en el bloque except y se devuelve una respuesta JSON
-        #No nos puede dar un error 500, los errores 500 los transformamos en 400 ya que estos errores el programador los tiene que especificar para que se capturen laa excepciones (errores)
-
         if errores == False:
             try:
                 entry = LibraryEntry.objects.create(
@@ -61,26 +93,20 @@ def add_library_entry(request):
                 ) 
                 return JsonResponse({"id": entry.id, "external_game_id": entry.external_game_id,"status":entry.status, "hours_played":entry.hours_played}, status=201)
             except IntegrityError:
-                # El external_game_id ya existe en la biblioteca
                 return JsonResponse({
                     "error": "duplicate_entry",
                     "message": "El juego ya existe en la biblioteca",
                     "details": {"external_game_id": "duplicate"}
                 }, status=400)
         else:
-            # Si hay errores de validación, devolver un error 400 con detalles
             return JsonResponse({
                 "error": "validation_error" ,
                 "message": "Datos de entrada inválidos",
                 "details": errores_dict
                 }, status=400)
     elif request.method == "GET":
-        #Obtenemos todas lae entradas de la base de datos
         entries = LibraryEntry.objects.all()
-
-        #Creamos una lista vacía para ir guardando las entradas de la biblioteca que luego enviaré como JSON
         response_entries = []
-        
         for entry in entries:
             response_entries.append({
                 "id": entry.id,
@@ -88,12 +114,9 @@ def add_library_entry(request):
                 "status": entry.status,
                 "hours_played": entry.hours_played
             })
-
-        # Devolvemos la respuesta JSON con la lista de entradas
-        return JsonResponse(response_entries, status=200, safe=False) #safe=False permite devolver listas como respuesta JSON
+        return JsonResponse(response_entries, status=200, safe=False) 
     else:
-        return JsonResponse({"error": "method_not_allowed", 
-        "message": "Método no permitido"}, status=405)
+        return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
 
 
 @require_http_methods(["GET", "PATCH"])
@@ -123,7 +146,6 @@ def library_entry_detail(request, id):
                 "details": {"body": "El cuerpo de la petición no puede estar vacío"}
             }, status=400)
         
-        # Verificar que solo se acepten status y hours_played
         allowed_fields = {'status', 'hours_played'}
         for key in data:
             if key not in allowed_fields:
@@ -133,7 +155,6 @@ def library_entry_detail(request, id):
                     "details": {key: "Campo no permitido"}
                 }, status=400)
         
-        # Verificar que al menos uno de los campos esté presente
         if 'status' not in data and 'hours_played' not in data:
             return JsonResponse({
                 "error": "validation_error",
