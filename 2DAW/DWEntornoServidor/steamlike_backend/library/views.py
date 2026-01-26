@@ -68,6 +68,8 @@ class RegisterView(View):
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
 def add_library_entry(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "unauthorized", "message": "No autenticado"}, status=401)
     if request.method == "POST":
         data= get_json_request(request)
         external_game_id = data.get("external_game_id")
@@ -89,7 +91,8 @@ def add_library_entry(request):
                 entry = LibraryEntry.objects.create(
                     external_game_id=external_game_id,
                     status=status,
-                    hours_played=hours_played
+                    hours_played=hours_played,
+                    user=request.user
                 ) 
                 return JsonResponse({"id": entry.id, "external_game_id": entry.external_game_id,"status":entry.status, "hours_played":entry.hours_played}, status=201)
             except IntegrityError:
@@ -105,7 +108,7 @@ def add_library_entry(request):
                 "details": errores_dict
                 }, status=400)
     elif request.method == "GET":
-        entries = LibraryEntry.objects.all()
+        entries = LibraryEntry.objects.filter(user=request.user)
         response_entries = []
         for entry in entries:
             response_entries.append({
@@ -124,7 +127,7 @@ def add_library_entry(request):
 def library_entry_detail(request, id):
     if request.method == 'GET':
         try:
-            entry = LibraryEntry.objects.get(id=id)
+            entry = LibraryEntry.objects.get(id=id, user=request.user)
             response_entry = {
                 "id": entry.id,
                 "external_game_id": entry.external_game_id,

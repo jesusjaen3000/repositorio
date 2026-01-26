@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from library.views import health, add_library_entry, library_entry_detail
-from users.views import register
+from users.views import register, login_view, me_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
