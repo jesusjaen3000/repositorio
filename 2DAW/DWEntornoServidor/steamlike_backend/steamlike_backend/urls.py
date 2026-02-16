@@ -1,7 +1,15 @@
 from django.contrib import admin
 from django.urls import path, include
-from library.views import health, add_library_entry, library_entry_detail
+from library.views import (
+    health, 
+    add_library_entry, 
+    library_entry_detail, 
+    catalog_search, 
+    catalog_resolve,
+    logout_view
+)
 from users.views import register, login_view, me_view
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -11,7 +19,9 @@ urlpatterns = [
     path("api/register/", register),
     path("api/auth/login/", login_view),  # Nueva ruta para login
     path("api/users/me/", me_view),       # Nueva ruta para comprobación
-
+    path("api/catalog/search/", catalog_search),
+    path("api/catalog/resolve/", catalog_resolve),
+    path('api/auth/logout/', logout_view, name='logout'),
 ]
 
 

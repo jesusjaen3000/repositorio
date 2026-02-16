@@ -1,4 +1,5 @@
 import json
+import requests # <--- IMPORTANTE: Asegúrate de añadir esta línea arriba
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.http import require_GET, require_http_methods
@@ -7,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.db import IntegrityError
 from django.contrib.auth.models import User
 from library.models import LibraryEntry
-
+from django.contrib.auth import logout
 def get_json_request(request):
     """
     Devuelve el cuerpo JSON del request como dict.
@@ -62,9 +63,12 @@ class RegisterView(View):
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
 def add_library_entry(request):
-    # 1. PROTECCIÓN: Autenticación
+    # 1. PROTECCIÓN: Autenticación (Ejercicio 5)
     if not request.user.is_authenticated:
-        return JsonResponse({"error": "unauthorized", "message": "No autenticado"}, status=401)
+        return JsonResponse({
+            "error": "unauthorized", 
+            "message": "No autenticado"
+        }, status=401)
     
     if request.method == "POST":
         data = get_json_request(request)
@@ -84,36 +88,59 @@ def add_library_entry(request):
         if status not in ["wishlist", "playing", "completed", "dropped"]:
             errores_dict.update({"status": "Estado no permitido"})
 
-        if not errores_dict:
-            try:
-                # ASOCIACIÓN AUTOMÁTICA AL USUARIO
-                entry = LibraryEntry.objects.create(
-                    external_game_id=external_game_id,
-                    status=status,
-                    hours_played=hours_played,
-                    user=request.user
-                ) 
-                return JsonResponse({
-                    "id": entry.id, 
-                    "external_game_id": entry.external_game_id,
-                    "status": entry.status, 
-                    "hours_played": entry.hours_played
-                }, status=201)
-            except IntegrityError:
-                return JsonResponse({
-                    "error": "duplicate_entry",
-                    "message": "El juego ya existe en tu biblioteca",
-                    "details": {"external_game_id": "duplicate"}
-                }, status=400)
-        else:
+        if errores_dict:
             return JsonResponse({
                 "error": "validation_error",
                 "message": "Datos de entrada inválidos",
                 "details": errores_dict
             }, status=400)
 
+        # --- EJERCICIO 4 (Caso C): Validación Externa ---
+        try:
+            # Comprobamos si el juego existe de verdad en CheapShark
+            check_url = f"https://www.cheapshark.com/api/1.0/games?id={external_game_id}"
+            check_resp = requests.get(check_url, timeout=5)
+            
+            # CheapShark devuelve un diccionario si existe, o vacío/error si no.
+            # Importante: check_resp.json() no debe estar vacío.
+            if check_resp.status_code != 200 or not check_resp.json():
+                return JsonResponse({
+                    "error": "invalid_external_game_id",
+                    "message": "El juego indicado no existe en el catálogo externo.",
+                    "details": {"external_game_id": "not_found"}
+                }, status=400)
+
+        except requests.exceptions.RequestException:
+            # Caso A (Ejercicio 4): Error de red o Timeout
+            return JsonResponse({
+                "error": "external_service_unavailable",
+                "message": "Servicio de validación externo no disponible"
+            }, status=503)
+
+        # 3. GUARDADO: Creación del registro asociado al usuario
+        try:
+            entry = LibraryEntry.objects.create(
+                external_game_id=str(external_game_id), # Aseguramos que sea string
+                status=status,
+                hours_played=hours_played,
+                user=request.user
+            ) 
+            return JsonResponse({
+                "id": entry.id, 
+                "external_game_id": entry.external_game_id,
+                "status": entry.status, 
+                "hours_played": entry.hours_played
+            }, status=201)
+
+        except IntegrityError:
+            return JsonResponse({
+                "error": "duplicate_entry",
+                "message": "El juego ya existe en tu biblioteca",
+                "details": {"external_game_id": "duplicate"}
+            }, status=400)
+
     elif request.method == "GET":
-        # PRIVACIDAD: Solo lo propio
+        # PRIVACIDAD: Solo devolvemos los juegos del usuario logueado
         entries = LibraryEntry.objects.filter(user=request.user)
         response_entries = [
             {
@@ -125,7 +152,7 @@ def add_library_entry(request):
         ]
         return JsonResponse(response_entries, status=200, safe=False) 
     
-    return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
+    return JsonResponse({"error": "method_not_allowed"}, status=405)
 
 @require_http_methods(["GET", "PATCH"])
 @csrf_exempt
@@ -196,3 +223,126 @@ def library_entry_detail(request, id):
         }, status=200)
 
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
+
+# === FUNCIONES UA7 CORREGIDAS SEGÚN PDF ===
+
+@require_GET
+def catalog_search(request):
+    """
+    Ejercicio 2: Buscador de catálogo externo
+    Ejercicio 4: Manejo de errores de resiliencia (502, 503, 504, 400)
+    """
+    q = request.GET.get('q')
+    
+    # 1. VALIDACIÓN: Entrada obligatoria (Error 400)
+    if not q or not q.strip():
+        return JsonResponse({
+            "error": "validation_error",
+            "message": "El parámetro de búsqueda 'q' es obligatorio y no puede estar vacío."
+        }, status=400)
+
+    try:
+        # 2. PETICIÓN: Con timeout de 5 segundos (Ejercicio 4 - Caso A)
+        resp = requests.get(f"https://www.cheapshark.com/api/1.0/games?title={q}", timeout=5)
+        
+        # 3. RESILIENCIA: Error del proveedor (Ejercicio 4 - Caso B)
+        if resp.status_code != 200:
+            return JsonResponse({
+                "error": "external_service_error",
+                "message": "La API externa ha respondido con un error inesperado."
+            }, status=502)
+        
+        data = resp.json()
+        
+        # 4. TRANSFORMACIÓN: (Ejercicio 2)
+        # Normalizamos IDs a string y limitamos a 20 resultados
+        results = [{
+            "external_game_id": str(g['gameID']),
+            "title": g['external'],
+            "thumb": g['thumb']
+        } for g in data[:20]]
+        
+        return JsonResponse(results, safe=False, status=200)
+        
+    except requests.exceptions.Timeout:
+        # Manejo específico de agotamiento de tiempo (Ejercicio 4 - Caso A)
+        return JsonResponse({
+            "error": "external_service_timeout",
+            "message": "El servicio externo ha tardado demasiado en responder (Timeout)."
+        }, status=504)
+        
+    except requests.exceptions.RequestException:
+        # Error genérico de red/conexión (Ejercicio 4)
+        return JsonResponse({
+            "error": "external_service_unavailable",
+            "message": "No se ha podido establecer conexión con el catálogo externo."
+        }, status=503)
+    
+@csrf_exempt
+@require_http_methods(["POST"])
+def catalog_resolve(request):
+    """Ejercicio 3: Resolver IDs de catálogo con manejo de errores (Ejercicio 4)"""
+    data = get_json_request(request)
+    ids = data.get("external_game_ids")
+    
+    # 1. Validación de entrada (Error 400)
+    if ids is None or not isinstance(ids, list) or len(ids) == 0:
+        return JsonResponse({
+            "error": "validation_error",
+            "message": "Se requiere una lista 'external_game_ids' no vacía."
+        }, status=400)
+
+    resolved = []
+    try:
+        for gid in ids:
+            # Añadimos timeout de 5 segundos (Ejercicio 4 - Caso A)
+            resp = requests.get(f"https://www.cheapshark.com/api/1.0/games?id={gid}", timeout=5)
+            
+            # Caso B: Si la API responde con error (Error 502)
+            if resp.status_code != 200:
+                return JsonResponse({
+                    "error": "external_service_error",
+                    "message": f"Error al consultar el ID {gid} en CheapShark."
+                }, status=502)
+
+            g = resp.json()
+            
+            # Verificamos que el juego exista (si devuelve un dict vacío es que no existe)
+            if g:
+                resolved.append({
+                    "external_game_id": str(gid),
+                    "title": g.get('info', {}).get('title'),
+                    "thumb": g.get('info', {}).get('thumb')
+                })
+        
+        return JsonResponse(resolved, safe=False, status=200)
+
+    except requests.exceptions.Timeout:
+        # Manejo específico del Caso A (Ejercicio 4)
+        return JsonResponse({
+            "error": "external_service_timeout",
+            "message": "La API externa ha tardado demasiado en responder durante la resolución de IDs."
+        }, status=504)
+
+    except requests.exceptions.RequestException:
+        # Error genérico de red (Ejercicio 4)
+        return JsonResponse({
+            "error": "external_service_unavailable",
+            "message": "El catálogo externo no está disponible. Inténtalo más tarde."
+        }, status=503)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def logout_view(request):
+    """
+    Endpoint para cerrar la sesión del usuario.
+    Limpia la sesión y la cookie de forma segura.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "error": "unauthorized",
+            "message": "No hay ninguna sesión activa para cerrar."
+        }, status=401)
+
+    logout(request)
+    return JsonResponse({"message": "Sesión cerrada correctamente"}, status=200)
