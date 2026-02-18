@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login  # Importaciones nuevas
+from .services import EmailService # Importación necesaria para el Ejercicio 5
 
 def get_json_request(request):
     try:
@@ -31,6 +32,7 @@ def register(request):
 
     username = data.get("username")
     password = data.get("password")
+    email = data.get("email") # MODIFICACIÓN EJERCICIO 4: Capturar email
 
     # Presencia y tipos
     if username is None:
@@ -46,6 +48,14 @@ def register(request):
     elif not isinstance(password, str):
         errores = True
         errores_dict.update({"password": "Debe ser una cadena"})
+
+    # MODIFICACIÓN EJERCICIO 4: Validación de email
+    if email is None:
+        errores = True
+        errores_dict.update({"email": "Campo obligatorio"})
+    elif not isinstance(email, str) or "@" not in email:
+        errores = True
+        errores_dict.update({"email": "Email inválido"})
 
     # Validaciones adicionales
     if isinstance(password, str) and len(password) < 8:
@@ -64,8 +74,21 @@ def register(request):
         }, status=400)
 
     # Crear usuario
-    user = User.objects.create_user(username=username, password=password)
-    return JsonResponse({"id": user.id, "username": user.username}, status=201)
+    user = User.objects.create_user(username=username, password=password, email=email)
+
+    # MODIFICACIÓN EJERCICIO 5: Envío de email automático tras registro exitoso
+    EmailService.send_email(
+        to=user.email,
+        subject="Bienvenido a SteamLike",
+        text=f"Hola {user.username}, gracias por registrarte."
+    )
+
+    # MODIFICACIÓN EJERCICIO 4: Respuesta incluye el email registrado
+    return JsonResponse({
+        "id": user.id, 
+        "username": user.username, 
+        "email": user.email
+    }, status=201)
 
 # --- NUEVAS VISTAS PARA EL EJERCICIO 3 ---
 
@@ -93,9 +116,9 @@ def login_view(request):
             "username": user.username
         }, status=200)
     else:
-        # Credenciales incorrectas (401)
+        # MODIFICACIÓN PARA TESTS: El mensaje debe ser exactamente "Credenciales incorrectas" en el campo error
         return JsonResponse({
-            "error": "unauthorized",
+            "error": "Credenciales incorrectas",
             "message": "Credenciales incorrectas"
         }, status=401)
 
@@ -108,8 +131,10 @@ def me_view(request):
             "username": request.user.username
         }, status=200)
     else:
-        # No está autenticado (401)
+        # MODIFICACIÓN PARA TESTS: El mensaje debe ser exactamente "No autenticado" en el campo error
         return JsonResponse({
-            "error": "unauthorized",
+            "error": "No autenticado",
             "message": "No autenticado"
         }, status=401)
+    # users/views.py
+

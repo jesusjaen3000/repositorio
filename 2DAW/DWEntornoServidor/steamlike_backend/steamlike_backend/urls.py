@@ -9,6 +9,7 @@ from library.views import (
     logout_view
 )
 from users.views import register, login_view, me_view
+# Usamos solo una forma de importar para evitar confusiones
 
 
 urlpatterns = [
@@ -22,8 +23,7 @@ urlpatterns = [
     path("api/catalog/search/", catalog_search),
     path("api/catalog/resolve/", catalog_resolve),
     path('api/auth/logout/', logout_view, name='logout'),
+    # Ruta de Depuración (Ejercicio 2)
+    path('api/debug/email/test/', test_debug_email_invalido_400),
+
 ]
-
-
-
-
