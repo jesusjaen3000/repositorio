@@ -6,7 +6,7 @@ import sys # Para forzar la salida
 class EmailService:
     @staticmethod
     def send_email(to, subject, text):
-        # Esto TIENE que salir en la terminal si la URL de Bruno es correcta...
+        # Esto TIENE que salir en la terminal si la URL de Bruno es correcta
         print(">>> ¡CONTACTO CON EL SERVIDOR ESTABLECIDO! <<<", flush=True)
         
         api_key = os.getenv("MAILEROO_API_KEY")
