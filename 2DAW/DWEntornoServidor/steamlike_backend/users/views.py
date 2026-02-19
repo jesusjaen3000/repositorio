@@ -136,5 +136,24 @@ def me_view(request):
             "error": "No autenticado",
             "message": "No autenticado"
         }, status=401)
-    # users/views.py
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def debug_email_test(request):
+    data = get_json_request(request)
+    to = data.get("to")
+    subject = data.get("subject")
+    text = data.get("text")
+
+    # Validación de campos
+    if not all([to, subject, text]):
+        return JsonResponse({"error": "validation_error"}, status=400)
+
+    # Llamada al servicio
+    success, status_code = EmailService.send_email(to, subject, text)
+    
+    if success:
+        return JsonResponse({"ok": True}, status=200)
+    
+    # CAMBIO REALIZADO AQUÍ: Forzamos 502 para que el test no reciba el 404 del servicio externo
+    return JsonResponse({"error": "email_failed"}, status=502)

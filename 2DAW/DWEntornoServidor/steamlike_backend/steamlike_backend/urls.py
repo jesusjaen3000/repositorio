@@ -8,7 +8,7 @@ from library.views import (
     catalog_resolve,
     logout_view
 )
-from users.views import register, login_view, me_view
+from users.views import register, login_view, me_view, debug_email_test  # Importaciones necesarias para el Ejercicio 5
 # Usamos solo una forma de importar para evitar confusiones
 
 
@@ -24,6 +24,6 @@ urlpatterns = [
     path("api/catalog/resolve/", catalog_resolve),
     path('api/auth/logout/', logout_view, name='logout'),
     # Ruta de Depuración (Ejercicio 2)
-    path('api/debug/email/test/', test_debug_email_invalido_400),
+    path('api/debug/email/test/', debug_email_test),
 
 ]
