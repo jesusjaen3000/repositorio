@@ -95,26 +95,37 @@ def add_library_entry(request):
                 "details": errores_dict
             }, status=400)
 
-        # --- EJERCICIO 4 (Caso C): Validación Externa ---
+        # --- EJERCICIO 4: Validación Externa (Casos A, B y C) ---
         try:
-            # Comprobamos si el juego existe de verdad en CheapShark
             check_url = f"https://www.cheapshark.com/api/1.0/games?id={external_game_id}"
             check_resp = requests.get(check_url, timeout=5)
             
-            # CheapShark devuelve un diccionario si existe, o vacío/error si no.
-            # Importante: check_resp.json() no debe estar vacío.
-            if check_resp.status_code != 200 or not check_resp.json():
+            # Caso B: Fallo externo por respuesta errónea (Status distinto de 200)
+            if check_resp.status_code != 200:
+                return JsonResponse({
+                    "error": "external_service_error",
+                    "message": "La API externa ha respondido con un error."
+                }, status=502)
+
+            # Caso C: Validación de existencia (ID no encontrado)
+            if not check_resp.json():
                 return JsonResponse({
                     "error": "invalid_external_game_id",
                     "message": "El juego indicado no existe en el catálogo externo.",
                     "details": {"external_game_id": "not_found"}
                 }, status=400)
 
-        except requests.exceptions.RequestException:
-            # Caso A (Ejercicio 4): Error de red o Timeout
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+            # Caso A: Fallo externo por red o timeout
             return JsonResponse({
                 "error": "external_service_unavailable",
-                "message": "Servicio de validación externo no disponible"
+                "message": "Servicio de validación externo no disponible o lento"
+            }, status=503)
+        except requests.exceptions.RequestException:
+            # Error genérico de la librería requests
+            return JsonResponse({
+                "error": "external_service_unavailable",
+                "message": "Error al conectar con el servicio externo"
             }, status=503)
 
         # 3. GUARDADO: Creación del registro asociado al usuario

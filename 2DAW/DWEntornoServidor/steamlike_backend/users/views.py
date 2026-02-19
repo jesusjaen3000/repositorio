@@ -1,3 +1,4 @@
+import logging
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -5,6 +6,8 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login  # Importaciones nuevas
 from .services import EmailService # Importación necesaria para el Ejercicio 5
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def get_json_request(request):
     try:
@@ -32,9 +35,9 @@ def register(request):
 
     username = data.get("username")
     password = data.get("password")
-    email = data.get("email") # MODIFICACIÓN EJERCICIO 4: Capturar email
+    email = data.get("email") 
 
-    # Presencia y tipos
+    # --- Validaciones (Ejercicio 4) ---
     if username is None:
         errores = True
         errores_dict.update({"username": "Campo obligatorio"})
@@ -49,7 +52,6 @@ def register(request):
         errores = True
         errores_dict.update({"password": "Debe ser una cadena"})
 
-    # MODIFICACIÓN EJERCICIO 4: Validación de email
     if email is None:
         errores = True
         errores_dict.update({"email": "Campo obligatorio"})
@@ -57,7 +59,6 @@ def register(request):
         errores = True
         errores_dict.update({"email": "Email inválido"})
 
-    # Validaciones adicionales
     if isinstance(password, str) and len(password) < 8:
         errores = True
         errores_dict.update({"password": "La contraseña debe tener al menos 8 caracteres"})
@@ -73,23 +74,34 @@ def register(request):
             "details": errores_dict
         }, status=400)
 
-    # Crear usuario
+    # --- Crear usuario ---
     user = User.objects.create_user(username=username, password=password, email=email)
 
-    # MODIFICACIÓN EJERCICIO 5: Envío de email automático tras registro exitoso
-    EmailService.send_email(
+    # --- LOG Y ENVÍO AUTOMÁTICO (Ejercicio 3 y 5) ---
+    # Registramos el intento de envío tras el registro exitoso
+    logger.info(f"[ACTION: register_welcome_email] [USER: {user.username}] [DEST: {user.email}] Enviando bienvenida automática")
+
+    # Llamada al servicio que ya devuelve éxito y código (gracias al Ejercicio 4 de resiliencia)
+    success, status_code = EmailService.send_email(
         to=user.email,
         subject="Bienvenido a SteamLike",
         text=f"Hola {user.username}, gracias por registrarte."
     )
 
-    # MODIFICACIÓN EJERCICIO 4: Respuesta incluye el email registrado
+    if success:
+        # Log de éxito
+        logger.info(f"[ACTION: register_welcome_email] [USER: {user.username}] [RESULT: ok]")
+    else:
+        # Log de error (si falla Maileroo, el usuario se crea igual pero registramos el fallo del email)
+        tipo_error = "error_503" if status_code == 503 else "error_502"
+        logger.error(f"[ACTION: register_welcome_email] [USER: {user.username}] [RESULT: {tipo_error}] Status: {status_code}")
+
+    # Respuesta oficial (Ejercicio 4: Incluye el email)
     return JsonResponse({
         "id": user.id, 
         "username": user.username, 
         "email": user.email
     }, status=201)
-
 # --- NUEVAS VISTAS PARA EL EJERCICIO 3 ---
 
 @require_http_methods(["POST"])
@@ -99,7 +111,7 @@ def login_view(request):
     username = data.get("username")
     password = data.get("password")
 
-    # Validación de tipos y presencia (400)
+    # Validación de tipos y presencia (400) 
     if not isinstance(username, str) or not isinstance(password, str):
         return JsonResponse({
             "error": "validation_error",
@@ -145,15 +157,28 @@ def debug_email_test(request):
     subject = data.get("subject")
     text = data.get("text")
 
+    # Obtenemos el nombre del usuario para el log (Ejercicio 3)
+    u_name = request.user.username if request.user.is_authenticated else "anonymous"
+
     # Validación de campos
     if not all([to, subject, text]):
         return JsonResponse({"error": "validation_error"}, status=400)
 
-    # Llamada al servicio
+    # --- LOG EJERCICIO 3: Intento de envío ---
+    logger.info(f"[ACTION: send_email] [USER: {u_name}] [DEST: {to}] Intento de envío de prueba")
+
+    # Llamada al servicio (Tu código original)
     success, status_code = EmailService.send_email(to, subject, text)
     
     if success:
+        # --- LOG EJERCICIO 3: Envío OK ---
+        logger.info(f"[ACTION: send_email] [USER: {u_name}] [DEST: {to}] [RESULT: ok]")
         return JsonResponse({"ok": True}, status=200)
     
-    # CAMBIO REALIZADO AQUÍ: Forzamos 502 para que el test no reciba el 404 del servicio externo
+    # --- LOG EJERCICIO 3: Fallo por respuesta o red (502/503) ---
+    # Si el status_code es 0 suele ser error de red (503), si es otro, error de proveedor (502)
+    tipo_error = "error_503" if status_code == 0 else "error_502"
+    logger.error(f"[ACTION: send_email] [USER: {u_name}] [DEST: {to}] [RESULT: {tipo_error}] Status API: {status_code}")
+
+    # Tu respuesta original
     return JsonResponse({"error": "email_failed"}, status=502)
