@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 class EmailService:
     @staticmethod
     def send_email(to, subject, text):
-        api_key = os.getenv("MAILEROO_API_KEY")
-        from_email = os.getenv("MAILEROO_DOMAIN_ID")
+        api_key = "a0a8621916188433006076433647ba766bb49843b6334ca03afd518f441c1dec"
+        from_email = "test@d461399e50cd3a07.maileroo.org"
         
         payload = {
             "to": [{"address": to}],
