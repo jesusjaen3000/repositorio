@@ -71,6 +71,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "steamlike_backend.wsgi.application"
 
+import sys # Asegúrate de tener esta línea al principio del archivo
+
+# Tu configuración original
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -81,6 +84,14 @@ DATABASES = {
         "PORT": _env("POSTGRES_PORT", "5432"),
     }
 }
+
+# --- ESTO ES LO QUE DEBES AÑADIR JUSTO DEBAJO ---
+# Si ejecutamos tests, cambiamos a SQLite para que GitHub Actions no falle
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
