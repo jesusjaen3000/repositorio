@@ -71,26 +71,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "steamlike_backend.wsgi.application"
 
-import sys # Asegúrate de tener esta línea al principio del archivo
-
-# Tu configuración original
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": _env("POSTGRES_DB", "steamlike"),
-        "USER": _env("POSTGRES_USER", "steamlike"),
-        "PASSWORD": _env("POSTGRES_PASSWORD", "steamlike"),
-        "HOST": _env("POSTGRES_HOST", "db"),
-        "PORT": _env("POSTGRES_PORT", "5432"),
+if os.getenv("GITHUB_ACTIONS") == "true":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
     }
-}
-
-# --- ESTO ES LO QUE DEBES AÑADIR JUSTO DEBAJO ---
-# Si ejecutamos tests, cambiamos a SQLite para que GitHub Actions no falle
-if 'test' in sys.argv:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _env("POSTGRES_DB", "steamlike"),
+            "USER": _env("POSTGRES_USER", "steamlike"),
+            "PASSWORD": _env("POSTGRES_PASSWORD", "steamlike"),
+            "HOST": _env("POSTGRES_HOST", "db"),
+            "PORT": _env("POSTGRES_PORT", "5432"),
+        }
     }
 
 AUTH_PASSWORD_VALIDATORS = [
