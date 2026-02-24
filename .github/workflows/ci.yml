@@ -9,6 +9,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: 2DAW/DWEntornoServidor/steamlike_backend
+
     steps:
     - uses: actions/checkout@v4 # Descarga tu código
 
