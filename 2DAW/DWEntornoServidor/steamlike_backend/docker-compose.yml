@@ -1,39 +1,34 @@
+version: '3.8'
+
 services:
   db:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    image: postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
 
   web:
     build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      - db
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/app
+      - .:/code
     ports:
       - "8000:8000"
-    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - MAILEROO_API_KEY=a0a8621916188433006076433647ba766bb49843b6334ca03afd518f441c1dec
+      - MAILEROO_DOMAIN_ID=test@d461399e50cd3a07.maileroo.org
+    depends_on:
+      - db
+      - redis
 
-
-  #frontend:
-    #build: ../steamlike-frontend
-    #restart: unless-stopped
-    #environment:
-      #API_BASE_URL: http://localhost:8000
-    #depends_on:
-      #- web
-    #ports:
-      #- "3000:80"
-
-volumes:
-  postgres_data:
+  redis:
+    image: redis:alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"

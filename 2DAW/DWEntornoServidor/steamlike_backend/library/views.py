@@ -1,4 +1,6 @@
 import json
+import requests                     
+import logging  
 from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.http import require_GET, require_http_methods
@@ -7,6 +9,8 @@ from django.utils.decorators import method_decorator
 from django.db import IntegrityError
 from django.contrib.auth.models import User
 from library.models import LibraryEntry
+from django.core.cache import cache  
+from library.catalog_service import CatalogService 
 
 def get_json_request(request):
     """
@@ -196,3 +200,26 @@ def library_entry_detail(request, id):
         }, status=200)
 
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
+# Configuramos el logger (Ejercicio 5)
+logger = logging.getLogger(__name__)
+
+from library.catalog_service import CatalogService # Importamos el servicio
+
+@require_GET
+def search_games(request):
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({"error": "Falta el parámetro q"}, status=400)
+
+    # Delegamos toda la lógica en el servicio (Ejercicio 3)
+    result = CatalogService.get_games(query)
+
+    # Si el servicio devuelve un error controlado (Ejercicio 4)
+    if isinstance(result, dict) and "error" in result:
+        status_code = result.get("status", 500)
+        return JsonResponse({
+            "error": result["error"],
+            "message": "Error al consultar el catálogo externo." if status_code == 502 else "El catálogo externo no está disponible."
+        }, status=status_code)
+
+    return JsonResponse(result, safe=False)
