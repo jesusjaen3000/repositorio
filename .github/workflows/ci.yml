@@ -33,6 +33,6 @@ jobs:
     # --- AÑADIDO PARA EJERCICIO 2 SEMANA 6 ---
     - name: Deploy to Render
       # Solo despliega si estamos en la rama principal (main o master)
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      # if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       run: |
         curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
