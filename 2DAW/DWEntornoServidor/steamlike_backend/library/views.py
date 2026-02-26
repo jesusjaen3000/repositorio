@@ -89,6 +89,16 @@ def add_library_entry(request):
             errores_dict.update({"status": "Estado no permitido"})
 
         if not errores_dict:
+            # --- CAMBIO OBLIGATORIO: VALIDACIÓN EXTERNA (Ejercicio 4 - Caso C) ---
+            # Verificamos si el ID existe en CheapShark antes de guardar [cite: 143, 182]
+            if not CatalogService.get_game_by_id(external_game_id):
+                return JsonResponse({
+                    "error": "invalid_external_game_id",
+                    "message": "El juego indicado no existe en el catálogo externo.",
+                    "details": { "external_game_id": "not_found" }
+                }, status=400)
+            # ---------------------------------------------------------------------
+
             try:
                 # ASOCIACIÓN AUTOMÁTICA AL USUARIO
                 entry = LibraryEntry.objects.create(
@@ -130,7 +140,6 @@ def add_library_entry(request):
         return JsonResponse(response_entries, status=200, safe=False) 
     
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
-
 @require_http_methods(["GET", "PATCH"])
 @csrf_exempt
 def library_entry_detail(request, id):
@@ -209,17 +218,33 @@ from library.catalog_service import CatalogService # Importamos el servicio
 def search_games(request):
     query = request.GET.get('q', '').strip()
     if not query:
-        return JsonResponse({"error": "Falta el parámetro q"}, status=400)
+        return JsonResponse({"error": "validation_error"}, status=400)
 
-    # Delegamos toda la lógica en el servicio (Ejercicio 3)
-    result = CatalogService.get_games(query)
+    # Obtenemos los juegos del servicio
+    raw_results = CatalogService.get_games(query)
 
-    # Si el servicio devuelve un error controlado (Ejercicio 4)
-    if isinstance(result, dict) and "error" in result:
-        status_code = result.get("status", 500)
-        return JsonResponse({
-            "error": result["error"],
-            "message": "Error al consultar el catálogo externo." if status_code == 502 else "El catálogo externo no está disponible."
-        }, status=status_code)
+    # --- AQUÍ ESTÁ EL CAMBIO OBLIGATORIO ---
+    # Transformamos la lista para que solo tenga los 3 campos que pide el PDF
+    enriquecidos = []
+    for game in raw_results:
+        enriquecidos.append({
+            "external_game_id": str(game.get("gameID")), # Mapeamos gameID a external_game_id
+            "title": game.get("external"),               # Mapeamos external a title
+            "thumb": game.get("thumb")
+        })
+    
+    return JsonResponse(enriquecidos, safe=False)
+@csrf_exempt
+@require_http_methods(["POST"])
+def resolve_games(request):
+    data = get_json_request(request)
+    game_ids = data.get("external_game_ids", [])
 
-    return JsonResponse(result, safe=False)
+    if not isinstance(game_ids, list):
+        return JsonResponse({"error": "validation_error"}, status=400)
+
+    # Llamamos al método que añadimos antes al CatalogService
+    # Asegúrate de que esta línea esté EXACTAMENTE así
+    results = CatalogService.get_games_by_ids(game_ids)
+    
+    return JsonResponse(results, safe=False)

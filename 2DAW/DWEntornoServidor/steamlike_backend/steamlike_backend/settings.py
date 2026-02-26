@@ -74,9 +74,9 @@ WSGI_APPLICATION = "steamlike_backend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": _env("POSTGRES_DB", "steamlike"),
-        "USER": _env("POSTGRES_USER", "steamlike"),
-        "PASSWORD": _env("POSTGRES_PASSWORD", "steamlike"),
+        "NAME": _env("POSTGRES_DB", "postgres"),      
+        "USER": _env("POSTGRES_USER", "postgres"),    
+        "PASSWORD": _env("POSTGRES_PASSWORD", "postgres"), 
         "HOST": _env("POSTGRES_HOST", "db"),
         "PORT": _env("POSTGRES_PORT", "5432"),
     }
