@@ -4,7 +4,7 @@ Backend Django para el proyecto que se realizará en DWES de 2º DAW.
 
 ## Arranque del proyecto.
 
-### 1) Levantar contenedores
+### 1) Levantar contenedores bien
 ```
 docker compose up --build
 ```
