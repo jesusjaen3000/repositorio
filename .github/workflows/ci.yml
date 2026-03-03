@@ -37,7 +37,7 @@ jobs:
 
   deploy:
     # Solo se ejecuta si lo eliges manualmente ('deploy' o 'both')
-    if: github.event.inputs.action == 'deploy' || github.event.inputs.action == 'both'
+    needs: test
     runs-on: ubuntu-latest
     steps:
     - name: Deploy to Render
