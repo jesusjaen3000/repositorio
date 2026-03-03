@@ -7,6 +7,8 @@ on:
 
 jobs:
   test:
+    # Se ejecuta si es un push normal, o si eliges 'test' o 'both' manualmente
+    if: github.event_name == 'push' || github.event.inputs.action == 'test' || github.event.inputs.action == 'both'
     runs-on: ubuntu-latest
 
     defaults:
@@ -14,7 +16,7 @@ jobs:
         working-directory: 2DAW/DWEntornoServidor/steamlike_backend
 
     steps:
-    - uses: actions/checkout@v4 # Descarga tu código
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -24,15 +26,20 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt # Instala dependencias
+        pip install -r requirements.txt
+        pip install coverage # Necesario para el Ejercicio 4
 
-    - name: Run Tests
+    - name: Run Tests with Coverage
       run: |
-        python manage.py test # Ejecuta los tests del backend
+        # Ejecuta tests con métrica de cobertura para el Ejercicio 4
+        coverage run manage.py test
+        coverage report 
 
-    # --- AÑADIDO PARA EJERCICIO 2 SEMANA 6 ---
+  deploy:
+    # Solo se ejecuta si lo eliges manualmente ('deploy' o 'both')
+    if: github.event.inputs.action == 'deploy' || github.event.inputs.action == 'both'
+    runs-on: ubuntu-latest
+    steps:
     - name: Deploy to Render
-      # Solo despliega si estamos en la rama principal (main o master)
-      # if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       run: |
         curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
