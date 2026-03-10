@@ -21,6 +21,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - MAILEROO_API_KEY=a0a8621916188433006076433647ba766bb49843b6334ca03afd518f441c1dec
       - MAILEROO_DOMAIN_ID=test@d461399e50cd3a07.maileroo.org
+      - REDIS_URL=redis://redis:6379/1
     depends_on:
       - db
       - redis

@@ -1,5 +1,5 @@
 import json
-import requests                     
+import requests                    
 import logging  
 from django.http import JsonResponse
 from django.views import View
@@ -90,7 +90,7 @@ def add_library_entry(request):
 
         if not errores_dict:
             # --- CAMBIO OBLIGATORIO: VALIDACIÓN EXTERNA (Ejercicio 4 - Caso C) ---
-            # Verificamos si el ID existe en CheapShark antes de guardar [cite: 143, 182]
+            # Verificamos si el ID existe en CheapShark antes de guardar
             if not CatalogService.get_game_by_id(external_game_id):
                 return JsonResponse({
                     "error": "invalid_external_game_id",
@@ -140,6 +140,7 @@ def add_library_entry(request):
         return JsonResponse(response_entries, status=200, safe=False) 
     
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
+
 @require_http_methods(["GET", "PATCH"])
 @csrf_exempt
 def library_entry_detail(request, id):
@@ -209,6 +210,7 @@ def library_entry_detail(request, id):
         }, status=200)
 
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
+
 # Configuramos el logger (Ejercicio 5)
 logger = logging.getLogger(__name__)
 
@@ -223,6 +225,10 @@ def search_games(request):
     # Obtenemos los juegos del servicio
     raw_results = CatalogService.get_games(query)
 
+    # --- CONTROL DE ERRORES EXTERNOS (Ejercicio 6) ---
+    if isinstance(raw_results, dict) and "error" in raw_results:
+        return JsonResponse(raw_results, status=raw_results.get("status", 503))
+
     # --- AQUÍ ESTÁ EL CAMBIO OBLIGATORIO ---
     # Transformamos la lista para que solo tenga los 3 campos que pide el PDF
     enriquecidos = []
@@ -234,6 +240,7 @@ def search_games(request):
         })
     
     return JsonResponse(enriquecidos, safe=False)
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def resolve_games(request):
@@ -243,8 +250,29 @@ def resolve_games(request):
     if not isinstance(game_ids, list):
         return JsonResponse({"error": "validation_error"}, status=400)
 
-    # Llamamos al método que añadimos antes al CatalogService
-    # Asegúrate de que esta línea esté EXACTAMENTE así
-    results = CatalogService.get_games_by_ids(game_ids)
-    
-    return JsonResponse(results, safe=False)
+    # --- CONTROL DE EXCEPCIONES EN LA VISTA (Ejercicio 6) ---
+    try:
+        # Llamamos al método del CatalogService
+        results = CatalogService.get_games_by_ids(game_ids)
+        
+        # Si el servicio ya manejó el error y devolvió un dict, lo pasamos tal cual
+        if isinstance(results, dict) and "error" in results:
+            return JsonResponse(results, status=results.get("status", 503))
+        
+        return JsonResponse(results, safe=False)
+
+    except requests.exceptions.Timeout:
+        # Error específico de tiempo de espera agotado
+        logger.error(f"[ACTION: resolve] [RESULT: timeout_error]")
+        return JsonResponse({
+            "error": "external_service_unavailable",
+            "message": "La API externa ha tardado demasiado en responder"
+        }, status=503)
+
+    except requests.exceptions.RequestException as e:
+        # Error genérico de petición (conexión, DNS, etc.)
+        logger.error(f"[ACTION: resolve] [RESULT: connection_error] [DETAILS: {str(e)}]")
+        return JsonResponse({
+            "error": "external_service_unavailable",
+            "message": "Error de conexión con el proveedor externo"
+        }, status=502)
