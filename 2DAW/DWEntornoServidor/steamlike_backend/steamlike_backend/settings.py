@@ -106,3 +106,42 @@ CSRF_TRUSTED_ORIGINS = _env_csv("DJANGO_CSRF_TRUSTED_ORIGINS", "http://frontend:
 # Dev defaults for cookies (keep simple; hardening can be done later)
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+# Dev defaults for cookies (keep simple; hardening can be done later)
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# --- CONFIGURACIÓN DE REDIS (Ejercicio 2 UA9) ---
+CACHES = {
+    "default": {
+        "BACKEND": "django-redis.cache.RedisCache",
+        "LOCATION": f"redis://{_env('REDIS_HOST', 'redis')}:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# --- CONFIGURACIÓN DE LOGS (Ejercicio 4 UA9) ---
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {  # Root logger para capturar tus logger.info del CatalogService
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
