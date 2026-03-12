@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login  # Importaciones nuevas
+from django.contrib.auth import authenticate, login, logout  # Se añade logout aquí
 
 def get_json_request(request):
     try:
@@ -113,3 +113,14 @@ def me_view(request):
             "error": "unauthorized",
             "message": "No autenticado"
         }, status=401)
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def logout_view(request):
+    """
+    Finaliza la sesión del usuario actual.
+    """
+    logout(request)
+    return JsonResponse({
+        "message": "Sesión cerrada correctamente"
+    }, status=200)

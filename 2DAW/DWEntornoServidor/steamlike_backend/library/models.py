@@ -14,18 +14,23 @@ class LibraryEntry(models.Model):
         STATUS_DROPPED,
     )
 
-    external_game_id = models.CharField(max_length=100, unique=True)
+    # CAMBIO 1: Quitamos unique=True para que varios usuarios puedan tener el mismo juego
+    external_game_id = models.CharField(max_length=100) 
     status = models.CharField(max_length=20, default=STATUS_WISHLIST)
     hours_played = models.IntegerField(default=0)
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, # Importante
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,        # para no romper datos existentes
+        null=True,        
         blank=True,
         related_name="library_entries",
     )
 
-    # --- Simple methods for easy unit tests (not used by the exercises) ---
+    # CAMBIO 2: Añadimos esta clase Meta para que UN usuario no pueda repetir EL MISMO juego
+    class Meta:
+        unique_together = ('external_game_id', 'user')
+
+    # --- Métodos (no tocar nada de aquí abajo) ---
 
     def external_id_length(self) -> int:
         return len(self.external_game_id or "")
@@ -52,5 +57,3 @@ class LibraryEntry(models.Model):
             return 3
         else:
             return -1
-
-    

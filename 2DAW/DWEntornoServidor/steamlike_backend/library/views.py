@@ -7,6 +7,7 @@ from django.utils.decorators import method_decorator
 from django.db import IntegrityError
 from django.contrib.auth.models import User
 from library.models import LibraryEntry
+from .catalog_service import CatalogService
 
 def get_json_request(request):
     """
@@ -25,6 +26,28 @@ def get_json_request(request):
 def health(request):
     return JsonResponse({"status": "ok"})
 
+# --- NUEVA VISTA PARA EL BUSCADOR (Ejercicio 2 y 4) ---
+@require_GET
+def catalog_search(request):
+    """
+    Endpoint para buscar juegos usando el CatalogService con caché y logs.
+    """
+    query = request.GET.get('q', '')
+    if not query:
+        return JsonResponse({
+            "error": "validation_error",
+            "message": "Falta el parámetro de búsqueda 'q'"
+        }, status=400)
+    
+    # Llamamos al servicio que gestiona Redis, la API externa y los Logs
+    data = CatalogService.get_games(query)
+    
+    # Si el servicio devuelve un error de resiliencia (Ejercicio 3)
+    if isinstance(data, dict) and data.get("error") == "external_service_unavailable":
+        return JsonResponse(data, status=503)
+        
+    return JsonResponse(data, safe=False, status=200)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(View):
     def post(self, request):
@@ -32,14 +55,12 @@ class RegisterView(View):
         username = data.get('username')
         password = data.get('password')
 
-        # Validación de campos obligatorios, tipos y contenido
         if not username or not password or not isinstance(username, str) or not isinstance(password, str) or not username.strip():
             return JsonResponse({
                 "error": "validation_error",
                 "message": "Faltan campos obligatorios o el formato es incorrecto"
             }, status=400)
 
-        # Validación longitud contraseña (mínimo 8)
         if len(password) < 8:
             return JsonResponse({
                 "error": "validation_error",
@@ -47,7 +68,6 @@ class RegisterView(View):
             }, status=400)
 
         try:
-            # Crear usuario (encripta la clave automáticamente)
             user = User.objects.create_user(username=username, password=password)
             return JsonResponse({
                 "id": user.id,
@@ -62,7 +82,6 @@ class RegisterView(View):
 @require_http_methods(["GET", "POST"])
 @csrf_exempt
 def add_library_entry(request):
-    # 1. PROTECCIÓN: Autenticación
     if not request.user.is_authenticated:
         return JsonResponse({"error": "unauthorized", "message": "No autenticado"}, status=401)
     
@@ -74,7 +93,6 @@ def add_library_entry(request):
         
         errores_dict = {}
 
-        # 2. VALIDACIÓN: Tipos y obligatoriedad
         if not external_game_id:
             errores_dict.update({"external_game_id": "Este campo es obligatorio"})
         
@@ -86,7 +104,6 @@ def add_library_entry(request):
 
         if not errores_dict:
             try:
-                # ASOCIACIÓN AUTOMÁTICA AL USUARIO
                 entry = LibraryEntry.objects.create(
                     external_game_id=external_game_id,
                     status=status,
@@ -113,7 +130,6 @@ def add_library_entry(request):
             }, status=400)
 
     elif request.method == "GET":
-        # PRIVACIDAD: Solo lo propio
         entries = LibraryEntry.objects.filter(user=request.user)
         response_entries = [
             {
@@ -134,7 +150,6 @@ def library_entry_detail(request, id):
         return JsonResponse({"error": "unauthorized", "message": "No autenticado"}, status=401)
 
     try:
-        # Filtro por ID y Usuario (Seguridad de propiedad)
         entry = LibraryEntry.objects.get(id=id, user=request.user)
     except LibraryEntry.DoesNotExist:
         return JsonResponse({
@@ -159,7 +174,6 @@ def library_entry_detail(request, id):
                 "details": {"body": "El cuerpo no puede estar vacío"}
             }, status=400)
         
-        # Validar campos permitidos
         allowed_fields = {'status', 'hours_played'}
         if not any(field in data for field in allowed_fields):
              return JsonResponse({
@@ -183,7 +197,6 @@ def library_entry_detail(request, id):
                 "details": errores_dict
             }, status=400)
         
-        # Guardar cambios
         if 'status' in data: entry.status = data['status']
         if 'hours_played' in data: entry.hours_played = data['hours_played']
         entry.save()
