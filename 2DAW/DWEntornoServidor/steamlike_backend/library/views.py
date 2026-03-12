@@ -103,6 +103,16 @@ def add_library_entry(request):
             errores_dict.update({"status": "Estado no permitido"})
 
         if not errores_dict:
+            # --- VALIDACIÓN INDISPENSABLE PDF 4 (Caso C) ---
+            # Usamos el servicio para ver si el ID existe realmente
+            external_info = CatalogService.get_game_by_id(external_game_id)
+            if external_info is None:
+                return JsonResponse({
+                    "error": "invalid_external_game_id",
+                    "message": "El juego no existe en el catálogo externo"
+                }, status=400)
+            # -----------------------------------------------
+
             try:
                 entry = LibraryEntry.objects.create(
                     external_game_id=external_game_id,
@@ -142,10 +152,10 @@ def add_library_entry(request):
         return JsonResponse(response_entries, status=200, safe=False) 
     
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
-
 @require_http_methods(["GET", "PATCH"])
 @csrf_exempt
 def library_entry_detail(request, id):
+
     if not request.user.is_authenticated:
         return JsonResponse({"error": "unauthorized", "message": "No autenticado"}, status=401)
 
@@ -209,3 +219,18 @@ def library_entry_detail(request, id):
         }, status=200)
 
     return JsonResponse({"error": "method_not_allowed", "message": "Método no permitido"}, status=405)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def catalog_resolve(request):
+    data = get_json_request(request)
+    game_ids = data.get("external_game_ids", [])
+    if not game_ids:
+        return JsonResponse({"error": "validation_error"}, status=400)
+        
+    resolved_data = CatalogService.get_games_by_ids(game_ids)
+    
+    if isinstance(resolved_data, dict) and resolved_data.get("error") == "external_service_unavailable":
+        return JsonResponse(resolved_data, status=503)
+        
+    return JsonResponse(resolved_data, safe=False, status=200)
